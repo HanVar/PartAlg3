@@ -17,7 +17,6 @@ def run_cpp_program(input_file, output_file):
     
     process.communicate(f"{vertices}\n{motif_id}\n".encode())
 
-
 def extract_blocks_with_types(output_file):
     blocks = []
     block_types = []
@@ -61,15 +60,14 @@ def extract_blocks_with_types(output_file):
 
     return blocks, block_types
 
-
-
-def draw_combined_graph_with_block_labels(blocks, block_types):
+# Graph with Block Type listed on legend
+def draw_combined_graph(blocks, block_types):
     G = nx.Graph()
     
     # Generate a large number of distinct colors using a colormap
     num_blocks = len(blocks)
-    cmap = cm.get_cmap('tab20', num_blocks)
-    block_colors = [cmap(i) for i in range(num_blocks)]
+    cmap = plt.colormaps['tab20']
+    block_colors = [cmap(i / num_blocks) for i in range(num_blocks)]
     
     edge_colors = {}
     for i, edges in enumerate(blocks):
@@ -96,27 +94,26 @@ def draw_combined_graph_with_block_labels(blocks, block_types):
     # Draw labels for nodes
     nx.draw_networkx_labels(G, pos, font_size=12, font_color="black")
     
-    # Add block type labels
-    for i, edges in enumerate(blocks):
-        # Get all nodes in this block
-        nodes_in_block = {node for edge in edges for node in edge}
-
-        # Calculate the centroid of the block
-        x_coords = [pos[node][0] for node in nodes_in_block]
-        y_coords = [pos[node][1] for node in nodes_in_block]
-        centroid_x = sum(x_coords) / len(x_coords)
-        centroid_y = sum(y_coords) / len(y_coords)
-        
-        # Label the block with its type
-        block_type = block_types[i] if i < len(block_types) else "Unknown"
-        plt.text(centroid_x, centroid_y, block_type, fontsize=10, color="red", 
-                 bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
+    # Add legend for block types and colors
+    legend_handles = []
+    for i, block_type in enumerate(block_types):
+        handle = plt.Line2D([], [], color=block_colors[i], label=block_type, linewidth=2)
+        legend_handles.append(handle)
     
+    # Position the legend outside the graph
+    plt.legend(
+        handles=legend_handles, 
+        title="Block Types", 
+        loc="center left", 
+        bbox_to_anchor=(1.00, 0.5),  # Position to the right of the graph
+        fontsize=10
+    )
+    
+    plt.tight_layout()  # Adjust layout to ensure everything fits
     plt.show()
 
-
-input_file = "/Users/just/Documents/GitHub/PartAlg3-master/PKB236.txt"
-output_file = "/Users/just/Documents/GitHub/PartAlg3-master/PKB236_out.txt"
+input_file = "/Users/Hannah/Documents/GitHub/PartAlg3-master/PKB236.txt"
+output_file = "/Users/Hannah/Documents/GitHub/PartAlg3-master/PKB236_out.txt"
 
 # Run the C++ program
 run_cpp_program(input_file, output_file)
@@ -125,4 +122,4 @@ run_cpp_program(input_file, output_file)
 blocks, block_types = extract_blocks_with_types(output_file)
 
 # Draw the combined graph with block type labels
-draw_combined_graph_with_block_labels(blocks, block_types)
+draw_combined_graph(blocks, block_types)
