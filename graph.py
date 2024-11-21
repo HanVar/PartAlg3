@@ -1,8 +1,8 @@
 import subprocess
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm 
+import matplotlib.cm as cm
 import networkx as nx
-import numpy as np 
+import numpy as np
 import re
 
 def run_cpp_program(input_file, output_file):
@@ -60,9 +60,29 @@ def extract_blocks_with_types(output_file):
 
     return blocks, block_types
 
-# Graph with Block Type listed on legend
-def draw_combined_graph(blocks, block_types):
-    G = nx.Graph()
+def read_adjacency_matrix(input_file):
+    """Reads the adjacency matrix from a file."""
+    with open(input_file, 'r') as file:
+        matrix = []
+        for line in file:
+            row = list(map(int, line.strip().split()))
+            matrix.append(row)
+    return matrix
+
+def add_edges_from_matrix(G, matrix):
+    """Adds edges to the graph G based on the adjacency matrix, excluding self-loops."""
+    for i in range(len(matrix)):
+        for j in range(len(matrix[i])):
+            weight = matrix[i][j]
+            if weight > 0 and i != j:  # Skip self-loops (i != j)
+                # For a MultiGraph, we add multiple edges if needed
+                for _ in range(weight):  # Add multiple edges based on weight
+                    G.add_edge(i, j, weight=weight)
+
+def draw_combined_graph(matrix, blocks, block_types, G):
+    """Draws the graph based on the adjacency matrix, colored edges by blocks, and labels for weights."""
+    # Generate positions for all nodes
+    pos = nx.spring_layout(G)
     
     # Generate a large number of distinct colors using a colormap
     num_blocks = len(blocks)
@@ -77,12 +97,9 @@ def draw_combined_graph(blocks, block_types):
         for edge in edges:
             edge_colors[edge] = block_color
     
-    # Generate positions for all nodes
-    pos = nx.spring_layout(G)
-    
     # Draw the graph
     plt.figure(figsize=(12, 12))
-    plt.title("Combined Graph of All Blocks with Types", fontsize=16)
+    plt.title("Graph with Colored Blocks and Weights", fontsize=16)
     
     # Draw nodes
     nx.draw_networkx_nodes(G, pos, node_size=700, node_color="skyblue")
@@ -93,6 +110,10 @@ def draw_combined_graph(blocks, block_types):
     
     # Draw labels for nodes
     nx.draw_networkx_labels(G, pos, font_size=12, font_color="black")
+    
+    # Add edge labels (weights)
+    edge_labels = {(u, v): G[u][v][0]['weight'] for u, v in G.edges()}
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=10, font_color="red")
     
     # Add legend for block types and colors
     legend_handles = []
@@ -112,14 +133,24 @@ def draw_combined_graph(blocks, block_types):
     plt.tight_layout()  # Adjust layout to ensure everything fits
     plt.show()
 
-input_file = "/Users/Hannah/Documents/GitHub/PartAlg3-master/PKB236.txt"
-output_file = "/Users/Hannah/Documents/GitHub/PartAlg3-master/PKB236_out.txt"
+# Use your provided file paths for input and output files
+input_file = "/Users/just/Documents/GitHub/PartAlg3-master/PKB236.txt"
+output_file = "/Users/just/Documents/GitHub/PartAlg3-master/PKB236_out.txt"
 
-# Run the C++ program
+# Run the C++ program (if needed)
 run_cpp_program(input_file, output_file)
 
 # Extract blocks and their types from the output
 blocks, block_types = extract_blocks_with_types(output_file)
 
-# Draw the combined graph with block type labels
-draw_combined_graph(blocks, block_types)
+# Read the adjacency matrix from the input file
+matrix = read_adjacency_matrix(input_file)
+
+# Create a MultiGraph to allow multiple edges between nodes
+G = nx.MultiGraph()
+
+# Add edges to the graph based on the adjacency matrix, excluding self-loops
+add_edges_from_matrix(G, matrix)
+
+# Draw the combined graph with block type labels and edge weights
+draw_combined_graph(matrix, blocks, block_types, G)
